@@ -3,159 +3,522 @@
 #include <windows.h>
 using namespace std;
 
-bool gameOver;
-const int lebarPeta = 20;
-const int panjangPeta = 20;
-int x, y, fruitX, fruitY, score;
-int ekorX[100], ekorY[100];
-int nEkor;
-enum eArah { STOP = 0, KIRI, KANAN, ATAS, BAWAH};
-eArah arh;
+#define KEY_UP 72
+#define KEY_DOWN 80
+#define KEY_LEFT 75
+#define KEY_RIGHT 77
 
-void Setup()
+void setcolor(unsigned short color)
 {
-	gameOver = false;
-	arh = STOP;
-	x = lebarPeta / 2;
-	y = panjangPeta / 2;
-	fruitX = rand() % lebarPeta;
-	fruitY = rand() % panjangPeta;
-	score = 0;
+    HANDLE hCon = GetStdHandle(STD_OUTPUT_HANDLE);
+
+    SetConsoleTextAttribute(hCon, color);
 }
-void Draw()
+
+struct pokemon
 {
-	//memangil cls untuk membuat peta
-	system("cls"); 
-	// lebar atas peta (for loop)
-	for (int i = 0; i < lebarPeta+2; i++)
-		cout << "#";
-	cout << endl;
+    string namaPoke; // Pokemon name
+    string tipePoke; // Pokemon type
+    int hpPoke;      // HP
+    int attackPoke;  // strength
+    int deffPoke;    // deff
+    string weakPoke; // weakness
+};
 
-	for (int i = 0; i < panjangPeta; i++)
-	{
-		for (int j = 0; j < lebarPeta; j++)
-		{
-			if (j == 0)
-				cout << "#";
-			if (i == y && j == x)
-				cout << "O";
-			else if (i == fruitY && j == fruitX)
-				cout << "*";
-			else
-			{
-				bool print = false;
-				for (int k = 0; k < nEkor; k++)
-				{
-					if (ekorX[k] == j && ekorY[k] == i)
-					{
-						cout << "o";
-						print = true;
-					}
-				}
-				if (!print)
-					cout << " ";
-			}
-				
-
-			if (j == lebarPeta - 1)
-				cout << "#";
-		}
-		cout << endl;
-	}
-
-	for (int i = 0; i < lebarPeta+2; i++)
-		cout << "#";
-	cout << endl;
-	cout << "Score:" << score << endl;
-}
-void Control()
+struct player
 {
-	if (_kbhit())
-	{
-		switch (_getch())
-		{
-		// menggerakkn snake ke kiri
-		case 'a':
-			arh = KIRI;
-			break;
-		// menggerakkn snake ke kanan
-		case 'd':
-			arh = KANAN;
-			break;
-		// menggerakkn snake ke atas
-		case 'w':
-			arh = ATAS;
-			break;
-		// menggerakkn snake ke bawah
-		case 's':
-			arh = BAWAH;
-			break;
-		// mengakhiri game
-		case 'x':
-			gameOver = true;
-			break;
-		}
-	}
-}
-void Logic()
-{
-	int prevX = ekorX[0];
-	int prevY = ekorY[0];
-	int prev2X, prev2Y;
-	ekorX[0] = x;
-	ekorY[0] = y;
-	for (int i = 1; i < nEkor; i++)
-	{
-		prev2X = ekorX[i];
-		prev2Y = ekorY[i];
-		ekorX[i] = prevX;
-		ekorY[i] = prevY;
-		prevX = prev2X;
-		prevY = prev2Y;
-	}
-	switch (arh)
-	{
-	case KIRI:
-		x--;
-		break;
-	case KANAN:
-		x++;
-		break;
-	case ATAS:
-		y--;
-		break;
-	case BAWAH:
-		y++;
-		break;
-	default:
-		break;
-	}
-	//jika (x > lebar || x < 0 || y > panjang || y < 0)
-	//	gameOver = true;
-	if (x >= lebarPeta) x = 0; else if (x < 0) x = lebarPeta - 1;
-	if (y >= panjangPeta) y = 0; else if (y < 0) y = panjangPeta - 1;
+    string namaPlayer;
+    int lvlPlayer;
+    string genderPlayer;
+    string pawang; // Pokemon yang dimiliki
+};
 
-	for (int i = 0; i < nEkor; i++)
-		if (ekorX[i] == x && ekorY[i] == y)
-			gameOver = true;
-
-	if (x == fruitX && y == fruitY)
-	{
-		score += 5;
-		fruitX = rand() % lebarPeta;
-		fruitY = rand() % lebarPeta;
-		nEkor++;
-	}
-}
 int main()
 {
-	Setup();
-	while (!gameOver)x
-	{
-		Draw();
-		Control();
-		Logic();
-		Sleep(10); 
-	}
-	return 0;
+    int opsiPoke;    // 1 untuk kabur, 2 untuk lawan, 3 untuk info pokemon lawan, 4 untuk info pokemon kawan
+    int opsiPokedex; // untuk di menu pokedex
+
+    int panjangPeta = 20; // x
+    int lebarPeta = 16;   // y
+
+    int posisiKarakterY = 15;
+    int posisiKarakterX = 4;
+	
+	cout << "=========================================" << endl;
+    cout << "=========================================" << endl;
+    cout << "==                                     ==" << endl;
+    cout << "==       WELCOME TO POKEJOURNEY        ==" << endl;
+    cout << "==                                     ==" << endl;
+    cout << "=========================================" << endl;
+    cout << "=========================================" << endl;
+    cout << "\n";
+    cout << "GUNAKAN ARROW KEY UNTUK BERGERAK!!!" << endl;
+    cout << "HINT : Karakter Anda ada di y:" << posisiKarakterY << ", x:" << posisiKarakterX << endl;
+	
+    int peta[lebarPeta][panjangPeta] = {
+        {8, 8, 8, 8, 8, 8, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+        {8, 8, 8, 8, 8, 8, 1, 1, 1, 1, 1, 1, 1, 5, 5, 1, 1, 1, 1, 1},
+        {8, 8, 8, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 5, 5, 1, 1, 1, 1, 1},
+        {8, 8, 8, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+        {1, 8, 8, 8, 8, 8, 8, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+        {1, 1, 8, 8, 8, 8, 8, 1, 1, 1, 1, 1, 1, 4, 4, 4, 4, 1, 1, 1},
+        {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 4, 4, 4, 4, 1, 1, 1},
+        {1, 1, 1, 5, 5, 1, 1, 1, 1, 1, 4, 4, 4, 4, 4, 4, 4, 1, 1, 1},
+        {1, 1, 1, 5, 5, 1, 1, 1, 4, 4, 4, 4, 4, 4, 4, 4, 6, 6, 6, 6},
+        {1, 1, 5, 5, 1, 1, 1, 1, 4, 4, 4, 4, 4, 4, 4, 4, 4, 1, 1, 1},
+        {1, 1, 5, 5, 1, 1, 1, 1, 4, 4, 4, 1, 1, 4, 4, 1, 1, 1, 1, 1},
+        {1, 1, 1, 1, 1, 1, 1, 1, 4, 4, 4, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+        {1, 1, 1, 1, 1, 1, 1, 1, 4, 4, 4, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+        {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 6, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+        {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 6, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+        {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 6, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+    };
+    	
+    	string pawang[3] = {"Pikachu", "Blastoise", "Butterfree"};
+    	
+    	pokemon gyrados, ivysaur, charizardMax; // deklarasi object struct pokemon lawan
+
+        gyrados.namaPoke = "Gyrados";
+        gyrados.tipePoke = "Aerr";
+        gyrados.hpPoke = 3000;
+        gyrados.attackPoke = 1000;
+        gyrados.deffPoke = 800;
+        gyrados.weakPoke = "Listrik";
+
+        ivysaur.namaPoke = "Ivysaur";
+        ivysaur.tipePoke = "Daon";
+        ivysaur.hpPoke = 1500;
+        ivysaur.attackPoke = 800;
+        ivysaur.deffPoke = 700;
+        ivysaur.weakPoke = "Api";
+
+        charizardMax.namaPoke = "Charizard Gigantamax";
+        charizardMax.tipePoke = "Apii";
+        charizardMax.hpPoke = 6000;
+        charizardMax.attackPoke = 4500;
+        charizardMax.deffPoke = 4600;
+        charizardMax.weakPoke = "Aerr";
+        
+
+        pokemon pikachu, blastoise, butterfree; // deklarasi object struct pokemon kawan
+
+        pikachu.namaPoke = "Pikachu";
+        pikachu.tipePoke = "Listrik";
+        pikachu.hpPoke = 3000;
+        pikachu.attackPoke = 1200;
+        pikachu.deffPoke = 1100;
+        pikachu.weakPoke = "Tanah";
+
+        blastoise.namaPoke = "Blastoise";
+        blastoise.tipePoke = "Aerr";
+        blastoise.hpPoke = 4500;
+        blastoise.attackPoke = 1500;
+        blastoise.deffPoke = 2300;
+        blastoise.weakPoke = "Daun";
+
+        butterfree.namaPoke = "Butterfree";
+        butterfree.tipePoke = "Serangga";
+        butterfree.hpPoke = 4000;
+        butterfree.attackPoke = 1000;
+        butterfree.deffPoke = 1400;
+        butterfree.weakPoke = "Api";
+		
+		pokemon machamp, magneton; // deklarasi object struct pokemon hadiah
+		
+		machamp.namaPoke   = "Machamp Gigantamax";
+		machamp.tipePoke   = "Petarung";
+		machamp.hpPoke     = 5000;
+		machamp.attackPoke = 3000;
+		machamp.deffPoke   = 1200;
+		machamp.weakPoke   = "Telepati";
+		
+		magneton.namaPoke   = "Magneton";
+		magneton.tipePoke   = "Listrik";
+		magneton.hpPoke     = 2500;
+		magneton.attackPoke = 900;
+		magneton.deffPoke   = 1200;
+		magneton.weakPoke   = "Api";
+    
+        player abel; // deklarasi object struct player
+
+        abel.namaPlayer   = "Abel";
+        abel.lvlPlayer    = 10;
+        abel.genderPlayer = "Cowok";
+        
+
+    int arrowKey = 0;
+
+    /*
+    #define KEY_UP 72
+    #define KEY_DOWN 80
+    #define KEY_LEFT 75
+    #define KEY_RIGHT 77
+    */
+    
+    while (1)
+    {
+
+        // Input Keyboard
+        char input;
+        input = getch();
+
+        // cout << "Masukan arrow key ";
+        // cin >> arrowKey;
+        // cout << "Arrow key yang dimasukan " << arrowKey << "\n";
+
+		peta:
+        // Aturan menggerakkan karakter ke atas
+        if (input == KEY_UP && (peta[posisiKarakterY - 1][posisiKarakterX] == 1 || peta[posisiKarakterY - 1][posisiKarakterX] == 4) && posisiKarakterY >= 0)
+        {
+            // Gerakkan karakter ke atas
+            posisiKarakterY = posisiKarakterY - 1;
+        }
+
+        // Aturan menggerakkan karakter ke bawah
+        if (input == KEY_DOWN && (peta[posisiKarakterY + 1][posisiKarakterX] == 1 || peta[posisiKarakterY + 1][posisiKarakterX] == 4) && posisiKarakterY < lebarPeta)
+        {
+            // Gerakkan karakter ke atas
+            posisiKarakterY = posisiKarakterY + 1;
+        }
+
+        // Aturan menggerakkan karakter ke kiri
+        if (input == KEY_LEFT && (peta[posisiKarakterY][posisiKarakterX - 1] == 1 || peta[posisiKarakterY][posisiKarakterX - 1] == 4) && posisiKarakterX >= 0)
+        {
+            // Gerakkan karakter ke atas
+            posisiKarakterX = posisiKarakterX - 1;
+        }
+
+        // Aturan menggerakkan karakter ke kanan
+        if (input == KEY_RIGHT && (peta[posisiKarakterY][posisiKarakterX + 1] == 1 || peta[posisiKarakterY][posisiKarakterX + 1] == 4) && posisiKarakterX < panjangPeta)
+        {
+            // Gerakkan karakter ke atas
+            posisiKarakterX = posisiKarakterX + 1;
+        }
+
+        if (input == 'q')
+        {
+        	cout << "\n";
+        	cout << "GAME OVER!!!" << endl;
+        	close:
+            break;
+        } else if (input == 'i') {
+        	cout << "ABOUT PLAYER" << endl;
+        	cout << "=====================" << endl;
+        	cout << "Player Name : " << abel.namaPlayer << endl;
+			cout << "Level : " << abel.lvlPlayer << endl;
+			cout << "Gender : " << abel.genderPlayer << endl;
+			cout << "Pawang : ";
+			for (int i = 0; i <=2; i++) {
+				cout << pawang[i] << ", ";
+				continue;
+			}
+			continue;
+		}
+
+        system("cls");
+
+        // Render grafik
+        for (int y = 0; y < lebarPeta; y++)
+        {
+            for (int x = 0; x < panjangPeta; x++)
+            {
+
+                if (posisiKarakterX == x && posisiKarakterY == y)
+                {
+                    setcolor(13);
+                    cout << "@"
+                         << " ";
+                    setcolor(7);
+                }
+                else if (peta[y][x] == 1)
+                {
+                    setcolor(12);
+                    cout << peta[y][x] << " ";
+                    setcolor(7);
+                }
+
+                else if (peta[y][x] == 5)
+                {
+                    setcolor(5);
+                    cout << peta[y][x] << " ";
+                    setcolor(7);
+                }
+
+                else if (peta[y][x] == 8)
+                {
+                    setcolor(16);
+                    cout << peta[y][x] << " ";
+                    setcolor(7);
+                }
+
+                else if (peta[y][x] == 4)
+                {
+                    setcolor(2);
+                    cout << peta[y][x] << " ";
+                    setcolor(7);
+                }
+
+                else if (peta[y][x] == 6)
+                {
+                    setcolor(9);
+                    cout << peta[y][x] << " ";
+                    setcolor(7);
+                }
+            }
+            cout << "\n";
+        }
+        
+        
+        if (posisiKarakterY == 7 && posisiKarakterX == 12)
+        {
+            cout << "Anda bertemu pokemon " << gyrados.namaPoke << ". Lawan atau Kabur? ";
+            cout << "(3/4 untuk Info Pokemon)" << endl;
+            cout << "Opsi Anda : ";
+            cin >> opsiPoke;
+            switch (opsiPoke)
+            {
+            case 1:
+                cout << "Kamu akan melawan pokemon " << gyrados.namaPoke;
+                break;
+            case 2:
+                cout << "Kabur!! Pokemon power terllalu tinggi!!";
+                goto peta;
+                break;
+            case 3:
+                cout << "ABOUT POKEMON!!" << endl;
+                cout << "=======================" << endl;
+                cout << "Pokemon Name  : " << gyrados.namaPoke << endl;
+                cout << "Pokemon Type  : " << gyrados.tipePoke << endl;
+                cout << "Pokemon HP    : " << gyrados.hpPoke << endl;
+                cout << "Attack Power  : " << gyrados.attackPoke << endl;
+                cout << "Defense Power : " << gyrados.deffPoke << endl;
+                cout << "Weakness      : " << gyrados.weakPoke << endl;
+                cout << "\n";
+                cout << "HINT : Tekan 3 untuk kembali" << endl;
+                goto peta;
+                break;
+            case 4:
+                cout << "POKEDEX" << endl;
+                cout << "=======================" << endl;
+                cout << "1. Pikachu" << endl;
+                cout << "2. Blastoise" << endl;
+                cout << "3. Butterfree" << endl;
+                cin >> opsiPokedex;
+                	switch(opsiPokedex) {
+                		case 1:
+                			cout << "ABOUT POKEMON!!" << endl;
+                			cout << "=======================" << endl;
+                			cout << "Pokemon Name  : " << pikachu.namaPoke << endl;
+                			cout << "Pokemon Type  : " << pikachu.tipePoke << endl;
+                			cout << "Pokemon HP    : " << pikachu.hpPoke << endl;
+                			cout << "Attack Power  : " << pikachu.attackPoke << endl;
+                			cout << "Defense Power : " << pikachu.deffPoke << endl;
+                			cout << "Weakness      : " << pikachu.weakPoke << endl;
+                			break;
+                		case 2:
+                			cout << "ABOUT POKEMON!!" << endl;
+                			cout << "=======================" << endl;
+                			cout << "Pokemon Name  : " << blastoise.namaPoke << endl;
+                			cout << "Pokemon Type  : " << blastoise.tipePoke << endl;
+                			cout << "Pokemon HP    : " << blastoise.hpPoke << endl;
+                			cout << "Attack Power  : " << blastoise.attackPoke << endl;
+                			cout << "Defense Power : " << blastoise.deffPoke << endl;
+                			cout << "Weakness      : " << blastoise.weakPoke << endl;
+                			break;
+                		case 3:
+                			cout << "ABOUT POKEMON!!" << endl;
+               				cout << "=======================" << endl;
+                			cout << "Pokemon Name  : " << butterfree.namaPoke << endl;
+                			cout << "Pokemon Type  : " << butterfree.tipePoke << endl;
+                			cout << "Pokemon HP    : " << butterfree.hpPoke << endl;
+                			cout << "Attack Power  : " << butterfree.attackPoke << endl;
+                			cout << "Defense Power : " << butterfree.deffPoke << endl;
+                			cout << "Weakness      : " << butterfree.weakPoke << endl;
+                			break;
+					}
+            }
+        }
+        else if (posisiKarakterY == 7 && posisiKarakterX == 16)
+        {
+            cout << "Anda bertemu pokemon " << ivysaur.namaPoke << ". Lawan atau Kabur? ";
+            cout << "(3/4 untuk Info Pokemon)" << endl;
+            cout << "Opsi Anda : ";
+            cin >> opsiPoke;
+            switch (opsiPoke)
+            {
+            case 1:
+                cout << "Kamu akan melawan pokemon " << ivysaur.namaPoke;
+                break;
+            case 2:
+                cout << "Kabur!! Pokemon power terllalu tinggi!!";
+                break;
+            case 3:
+                cout << "ABOUT POKEMON!!" << endl;
+                cout << "=======================" << endl;
+                cout << "Pokemon Name  : " << ivysaur.namaPoke << endl;
+                cout << "Pokemon Type  : " << ivysaur.tipePoke << endl;
+                cout << "Pokemon HP    : " << ivysaur.hpPoke << endl;
+                cout << "Attack Power  : " << ivysaur.attackPoke << endl;
+                cout << "Defense Power : " << ivysaur.deffPoke << endl;
+                cout << "Weakness      : " << ivysaur.weakPoke << endl;
+                cout << "\n";
+                cout << "HINT : Tekan 3 untuk kembali" << endl;
+                break;
+            case 4:
+                cout << "POKEDEX" << endl;
+                cout << "=======================" << endl;
+                cout << "1. Pikachu" << endl;
+                cout << "2. Blastoise" << endl;
+                cout << "3. Butterfree" << endl;
+                cin >> opsiPokedex;
+                	switch(opsiPokedex) {
+                		case 1:
+                			cout << "ABOUT POKEMON!!" << endl;
+                			cout << "=======================" << endl;
+                			cout << "Pokemon Name  : " << pikachu.namaPoke << endl;
+                			cout << "Pokemon Type  : " << pikachu.tipePoke << endl;
+                			cout << "Pokemon HP    : " << pikachu.hpPoke << endl;
+                			cout << "Attack Power  : " << pikachu.attackPoke << endl;
+                			cout << "Defense Power : " << pikachu.deffPoke << endl;
+                			cout << "Weakness      : " << pikachu.weakPoke << endl;
+                			break;
+                		case 2:
+                			cout << "ABOUT POKEMON!!" << endl;
+                			cout << "=======================" << endl;
+                			cout << "Pokemon Name  : " << blastoise.namaPoke << endl;
+                			cout << "Pokemon Type  : " << blastoise.tipePoke << endl;
+                			cout << "Pokemon HP    : " << blastoise.hpPoke << endl;
+                			cout << "Attack Power  : " << blastoise.attackPoke << endl;
+                			cout << "Defense Power : " << blastoise.deffPoke << endl;
+                			cout << "Weakness      : " << blastoise.weakPoke << endl;
+                			break;
+                		case 3:
+                			cout << "ABOUT POKEMON!!" << endl;
+               				cout << "=======================" << endl;
+                			cout << "Pokemon Name  : " << butterfree.namaPoke << endl;
+                			cout << "Pokemon Type  : " << butterfree.tipePoke << endl;
+                			cout << "Pokemon HP    : " << butterfree.hpPoke << endl;
+                			cout << "Attack Power  : " << butterfree.attackPoke << endl;
+                			cout << "Defense Power : " << butterfree.deffPoke << endl;
+                			cout << "Weakness      : " << butterfree.weakPoke << endl;
+                			break;
+					}
+            }
+        }
+        else if (posisiKarakterY == 9 && posisiKarakterX == 16)
+        {
+            cout << "POKEMON HIGH-TIER FOUND!!!" << endl;
+            cout << "Lawan atau Kabur? (3/4 untuk Info Pokemon) ";
+            cin >> opsiPoke;
+            switch (opsiPoke)
+            {
+            case 1:
+                cout << "Kamu akan melawan Pokemon " << charizardMax.namaPoke << ". WARNING!!! Power Pokemon Terlalu Jauh!!!";
+                break;
+                goto peta;
+            case 2:
+                cout << "Kabur!! Kamu Bertemu Pokemon High-Tier!!" << endl;
+                break;
+            case 3:
+                cout << "ABOUT POKEMON!!" << endl;
+                cout << "=======================" << endl;
+                cout << "Pokemon Name  : " << charizardMax.namaPoke << endl;
+                cout << "Pokemon Type  : " << charizardMax.tipePoke << endl;
+                cout << "Pokemon HP    : " << charizardMax.hpPoke << endl;
+                cout << "Attack Power  : " << charizardMax.attackPoke << endl;
+                cout << "Defense Power : " << charizardMax.deffPoke << endl;
+                cout << "Weakness      : " << charizardMax.weakPoke << endl;
+                cout << "\n";
+                cout << " 'SUREN AJA DEKK!!!' " << endl;
+                cout << "HINT : Tekan 3 untuk kembali" << endl;
+                break;
+            case 4:
+                cout << "POKEDEX" << endl;
+                cout << "=======================" << endl;
+                cout << "1. Pikachu" << endl;
+                cout << "2. Blastoise" << endl;
+                cout << "3. Butterfree" << endl;
+                cin >> opsiPokedex;
+                	switch(opsiPokedex) {
+                		case 1:
+                			cout << "ABOUT POKEMON!!" << endl;
+                			cout << "=======================" << endl;
+                			cout << "Pokemon Name  : " << pikachu.namaPoke << endl;
+                			cout << "Pokemon Type  : " << pikachu.tipePoke << endl;
+                			cout << "Pokemon HP    : " << pikachu.hpPoke << endl;
+                			cout << "Attack Power  : " << pikachu.attackPoke << endl;
+                			cout << "Defense Power : " << pikachu.deffPoke << endl;
+                			cout << "Weakness      : " << pikachu.weakPoke << endl;
+                			break;
+                		case 2:
+                			cout << "ABOUT POKEMON!!" << endl;
+                			cout << "=======================" << endl;
+                			cout << "Pokemon Name  : " << blastoise.namaPoke << endl;
+                			cout << "Pokemon Type  : " << blastoise.tipePoke << endl;
+                			cout << "Pokemon HP    : " << blastoise.hpPoke << endl;
+                			cout << "Attack Power  : " << blastoise.attackPoke << endl;
+                			cout << "Defense Power : " << blastoise.deffPoke << endl;
+                			cout << "Weakness      : " << blastoise.weakPoke << endl;
+                			break;
+                		case 3:
+                			cout << "ABOUT POKEMON!!" << endl;
+               				cout << "=======================" << endl;
+                			cout << "Pokemon Name  : " << butterfree.namaPoke << endl;
+                			cout << "Pokemon Type  : " << butterfree.tipePoke << endl;
+                			cout << "Pokemon HP    : " << butterfree.hpPoke << endl;
+                			cout << "Attack Power  : " << butterfree.attackPoke << endl;
+                			cout << "Defense Power : " << butterfree.deffPoke << endl;
+                			cout << "Weakness      : " << butterfree.weakPoke << endl;
+                			break;
+					}
+            }
+        } else if (posisiKarakterY == 2 && posisiKarakterX == 3) {
+        	char c = 'c' || 'C';
+        	char i = 'i' || 'I';
+        	pressC:
+        	cout << "==========================" << endl;
+        	cout << "===   TREASURE FOUND   ===" << endl;
+        	cout << "==========================" << endl;
+        	cout << "\n";
+        	string pawang[5] = {pikachu.namaPoke, blastoise.namaPoke, butterfree.namaPoke, machamp.namaPoke, magneton.namaPoke};
+        	
+        	cout << "Press Any key to Continue : ";
+        	cin >> c;
+        	
+        	if (c == 'c' || 'C') {
+        		cout << "CONGRATULATION!!!" << endl;
+        		cout << "Player Name : " << abel.namaPlayer << endl;
+				cout << "Level : " << abel.lvlPlayer << endl;
+				cout << "Gender : " << abel.genderPlayer << endl;
+				cout << "\n";
+				cout << "YOU ARE THE WINNER!!!!" << endl;
+				cout << "You get : " << endl;
+				cout << "EXP + 10000" << endl;
+				cout << "New Pokemon Unlocked!!! : " << machamp.namaPoke <<  " & " << magneton.namaPoke << endl;
+				cout << "press Any key for info : ";
+				cin >> i;
+					if (i == 'i' || 'I') {
+					cout << "\n";
+					cout << "ABOUT PLAYER" << endl;
+        			cout << "=====================" << endl;
+        			cout << "Player Name : " << abel.namaPlayer << endl;
+					cout << "Level : " << abel.lvlPlayer << endl;
+					cout << "Gender : " << abel.genderPlayer << endl;
+					for (int i = 0; i <= 4; i++) {
+						cout << pawang[i] << " " << endl;
+					}
+					cout << "HINT : Press any key to continue" << endl;
+				} else {
+					goto pressC;
+				}
+				
+			} else if (c == 'q' || 'Q') {
+				goto close;
+			}
+			
+			}
+		}
+    // y = 15
+    // x = 4
+    return 0;
 }
